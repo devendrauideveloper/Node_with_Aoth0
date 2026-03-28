@@ -1,0 +1,22 @@
+{
+  "name": "@app/api-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@repo/auth": "1.0.0",
+    "@repo/config": "1.0.0",
+    "@repo/resilience": "1.0.0",
+    "@repo/shared": "1.0.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "fastify": "^5.2.1"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "node-auth0-microservices-starter",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev": "concurrently \"npm run dev -w @app/bff\" \"npm run dev -w @app/api-gateway\" \"npm run dev -w @app/order-service\" \"npm run dev -w @app/inventory-service\" \"npm run dev -w @app/payment-service\"",
+    "lint": "npm run lint --workspaces",
+    "start": "npm run start --workspaces",
+    "db:seed": "tsx scripts/seed.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/opossum": "^8.1.9",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}
