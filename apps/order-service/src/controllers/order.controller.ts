@@ -1,30 +1,34 @@
+import type { Request, Response } from "express";
 import { orderCreateSchema } from "@repo/shared";
 import { createOrder, getOrders } from "../services/order.service.js";
 
-export async function createOrderController(request: any, reply: any) {
-  const body = orderCreateSchema.parse(request.body);
-  const userSub = request.headers["x-user-sub"];
-  const idempotencyKey = request.headers["idempotency-key"];
+export async function createOrderController(req: Request, res: Response) {
+  const body = orderCreateSchema.parse(req.body);
+  const userSub = req.headers["x-user-sub"];
+  const idempotencyKey = req.headers["idempotency-key"];
 
   if (!userSub || typeof userSub !== "string") {
-    return reply.code(400).send({ message: "Missing x-user-sub" });
+    res.status(400).json({ message: "Missing x-user-sub" });
+    return;
   }
   if (!idempotencyKey || typeof idempotencyKey !== "string") {
-    return reply.code(400).send({ message: "Missing Idempotency-Key header" });
+    res.status(400).json({ message: "Missing Idempotency-Key header" });
+    return;
   }
 
-  const result = await createOrder({ body, userSub, idempotencyKey, correlationId: request.id });
+  const result = await createOrder({ body, userSub, idempotencyKey, correlationId: req.id });
   if (result.type === "conflict") {
-    return reply.code(409).send(result.payload);
+    res.status(409).json(result.payload);
+    return;
   }
   if (result.type === "replayed") {
-    return reply.code(200).send(result.payload);
+    res.status(200).json(result.payload);
+    return;
   }
-  return reply.code(202).send(result.payload);
+  res.status(202).json(result.payload);
 }
 
-export async function listOrdersController(request: any) {
-  const limit = Number((request.query as { limit?: number }).limit ?? 20);
-  return getOrders(limit);
+export async function listOrdersController(req: Request, res: Response) {
+  const limit = Number((req.query as { limit?: string }).limit ?? 20);
+  res.json(await getOrders(limit));
 }
-

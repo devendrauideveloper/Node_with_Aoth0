@@ -17,9 +17,14 @@
     "@repo/database": "1.0.0",
     "@repo/resilience": "1.0.0",
     "@repo/shared": "1.0.0",
-    "@fastify/cookie": "^11.0.2",
-    "@fastify/cors": "^11.1.0",
-    "@fastify/rate-limit": "^10.3.0",
-    "fastify": "^5.2.1"
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21"
   }
 }

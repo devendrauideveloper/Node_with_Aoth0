@@ -1,18 +1,17 @@
+import type { Request, Response } from "express";
 import { getUserAuthorizations } from "@repo/auth";
 import { upsertUserGroupMembership } from "../repositories/session.repository.js";
 import { requireCsrf } from "../services/session.service.js";
 
-export async function assignGroupMembershipController(request: any, reply: any) {
-  if (!requireCsrf(request, reply)) {
+export async function assignGroupMembershipController(req: Request, res: Response) {
+  if (!requireCsrf(req, res)) return;
+
+  const authorizations = await getUserAuthorizations(req.session.auth0_sub);
+  if (!authorizations.privileges.includes("MODIFY")) {
+    res.status(403).json({ message: "Insufficient privileges" });
     return;
   }
 
-  const authorizations = await getUserAuthorizations(request.session.auth0_sub);
-  if (!authorizations.privileges.includes("MODIFY")) {
-    return reply.code(403).send({ message: "Insufficient privileges" });
-  }
-
-  await upsertUserGroupMembership(request.body);
-  return { ok: true };
+  await upsertUserGroupMembership(req.body);
+  res.json({ ok: true });
 }
-

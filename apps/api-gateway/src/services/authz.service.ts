@@ -1,27 +1,43 @@
+import type { Request, Response, NextFunction } from "express";
 import { getUserAuthorizations, verifyAccessToken } from "@repo/auth";
 
-export async function authorize(request: any, reply: any) {
-  const authHeader = request.headers.authorization;
+declare global {
+  namespace Express {
+    interface Request {
+      auth: {
+        sub: string;
+        privileges: string[];
+        groups: string[];
+      };
+    }
+  }
+}
+
+export async function authorize(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
-    return reply.code(401).send({ message: "Missing bearer token" });
+    res.status(401).json({ message: "Missing bearer token" });
+    return;
   }
 
   const payload = await verifyAccessToken(authHeader.slice("Bearer ".length));
   const auth0Sub = String(payload.sub);
   const authorizations = await getUserAuthorizations(auth0Sub);
 
-  request.auth = {
+  req.auth = {
     sub: auth0Sub,
     privileges: authorizations.privileges,
     groups: authorizations.groups
   };
+  next();
 }
 
 export function requirePrivilege(privilege: string) {
-  return async (request: any, reply: any) => {
-    if (!request.auth?.privileges.includes(privilege)) {
-      return reply.code(403).send({ message: `Missing privilege: ${privilege}` });
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.auth?.privileges.includes(privilege)) {
+      res.status(403).json({ message: `Missing privilege: ${privilege}` });
+      return;
     }
+    next();
   };
 }
-

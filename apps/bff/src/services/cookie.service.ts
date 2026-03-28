@@ -7,7 +7,7 @@ export function cookieOptions(maxAgeSeconds: number) {
     sameSite: "lax" as const,
     domain: env.SESSION_COOKIE_DOMAIN === "localhost" ? undefined : env.SESSION_COOKIE_DOMAIN,
     path: "/",
-    maxAge: maxAgeSeconds,
+    maxAge: maxAgeSeconds * 1000,
     signed: true
   };
 }
@@ -21,4 +21,3 @@ export function csrfOptions() {
     path: "/"
   };
 }
-

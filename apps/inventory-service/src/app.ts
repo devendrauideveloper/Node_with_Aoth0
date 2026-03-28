@@ -1,14 +1,24 @@
+import express from "express";
 import crypto from "node:crypto";
-import Fastify from "fastify";
-import { logger } from "@repo/shared";
 import { registerRoutes } from "./routes/index.js";
 
-export async function buildApp() {
-  const app = Fastify({
-    loggerInstance: logger,
-    genReqId: (req) => (req.headers["x-correlation-id"] as string) ?? crypto.randomUUID()
-  });
-  await registerRoutes(app);
-  return app;
+declare global {
+  namespace Express {
+    interface Request {
+      id: string;
+    }
+  }
 }
 
+export function buildApp() {
+  const app = express();
+
+  app.use((req, _res, next) => {
+    req.id = (req.headers["x-correlation-id"] as string) ?? crypto.randomUUID();
+    next();
+  });
+
+  app.use(express.json());
+  registerRoutes(app);
+  return app;
+}

@@ -1,12 +1,20 @@
+import type { Request, Response, NextFunction } from "express";
 import { env } from "@repo/config";
 import { decryptSecret, getUserAuthorizations, refreshAuth0Tokens } from "@repo/auth";
 import { loadSession, updateSessionTokens } from "../repositories/session.repository.js";
+import type { AppSession } from "../types/session.types.js";
+
+declare global {
+  namespace Express {
+    interface Request {
+      session: AppSession;
+    }
+  }
+}
 
 export async function ensureFreshSession(sessionId: string) {
   const session = await loadSession(sessionId);
-  if (!session) {
-    return null;
-  }
+  if (!session) return null;
 
   const expiresAt = new Date(session.access_token_expires_at).getTime();
   const refreshWindowMs = env.ACCESS_TOKEN_REFRESH_WINDOW_SECONDS * 1000;
@@ -26,31 +34,34 @@ export async function ensureFreshSession(sessionId: string) {
   return loadSession(sessionId);
 }
 
-export async function requireSession(request: any, reply: any) {
-  const signed = request.unsignCookie(request.cookies[env.SESSION_COOKIE_NAME] ?? "");
-  if (!signed.valid || !signed.value) {
-    return reply.code(401).send({ message: "Unauthenticated" });
+export async function requireSession(req: Request, res: Response, next: NextFunction) {
+  const sessionId = req.signedCookies[env.SESSION_COOKIE_NAME] as string | false;
+  if (!sessionId) {
+    res.status(401).json({ message: "Unauthenticated" });
+    return;
   }
 
-  const session = await ensureFreshSession(signed.value);
+  const session = await ensureFreshSession(sessionId);
   if (!session) {
-    return reply.code(401).send({ message: "Session expired" });
+    res.status(401).json({ message: "Session expired" });
+    return;
   }
 
-  request.session = session;
+  req.session = session;
+  next();
 }
 
-export function requireCsrf(request: any, reply: any): boolean {
-  const csrfHeader = request.headers["x-csrf-token"];
-  const csrfCookie = request.cookies[env.CSRF_COOKIE_NAME];
-  if (!csrfHeader || csrfHeader !== csrfCookie || csrfHeader !== request.session.csrf_token) {
-    void reply.code(403).send({ message: "CSRF validation failed" });
+export function requireCsrf(req: Request, res: Response): boolean {
+  const csrfHeader = req.headers["x-csrf-token"];
+  const csrfCookie = req.cookies[env.CSRF_COOKIE_NAME];
+  if (!csrfHeader || csrfHeader !== csrfCookie || csrfHeader !== req.session.csrf_token) {
+    res.status(403).json({ message: "CSRF validation failed" });
     return false;
   }
   return true;
 }
 
-export async function buildSessionView(session: any) {
+export async function buildSessionView(session: AppSession) {
   const authorizations = await getUserAuthorizations(session.auth0_sub);
   const expiresAt = new Date(session.access_token_expires_at).toISOString();
 
@@ -66,4 +77,3 @@ export async function buildSessionView(session: any) {
     shouldRefresh: new Date(expiresAt).getTime() - Date.now() <= env.ACCESS_TOKEN_REFRESH_WINDOW_SECONDS * 1000
   };
 }
-

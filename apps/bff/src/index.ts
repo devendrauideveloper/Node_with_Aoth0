@@ -1,10 +1,9 @@
 import { env } from "@repo/config";
+import { logger } from "@repo/shared";
 import { buildApp } from "./app.js";
 
-const app = await buildApp();
+const app = buildApp();
 
-await app.listen({
-  port: env.BFF_PORT,
-  host: "0.0.0.0"
+app.listen(env.BFF_PORT, "0.0.0.0", () => {
+  logger.info({ port: env.BFF_PORT }, "BFF listening");
 });
-

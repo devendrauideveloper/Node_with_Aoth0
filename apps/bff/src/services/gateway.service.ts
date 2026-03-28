@@ -1,3 +1,4 @@
+import type { Request, Response } from "express";
 import { env } from "@repo/config";
 import { createCircuitBreaker, fetchWithTimeout } from "@repo/resilience";
 
@@ -8,28 +9,28 @@ const gatewayBreaker = createCircuitBreaker(
 );
 
 export async function proxyToGateway(
-  request: any,
-  reply: any,
+  req: Request,
+  res: Response,
   path: string,
   init: RequestInit = {},
 ) {
   const response = await gatewayBreaker.fire(path, {
     ...init,
     headers: {
-      authorization: `Bearer ${request.session.access_token}`,
+      authorization: `Bearer ${req.session.access_token}`,
       "content-type": "application/json",
-      "x-correlation-id": request.id,
+      "x-correlation-id": req.id,
       ...(init.headers ?? {}),
     },
   });
 
   const bodyText = await response.text();
-  reply.code(response.status);
+  res.status(response.status);
+
   if (!bodyText) {
-    return reply.send();
+    res.send();
+    return;
   }
 
-  return reply
-    .type(response.headers.get("content-type") ?? "application/json")
-    .send(bodyText);
+  res.set("content-type", response.headers.get("content-type") ?? "application/json").send(bodyText);
 }
